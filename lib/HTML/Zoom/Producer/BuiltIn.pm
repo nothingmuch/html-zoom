@@ -10,6 +10,11 @@ sub html_from_stream {
   return $html;
 }
 
+sub html_from_events {
+  my ($class, $events) = @_;
+  join '', map $class->_event_to_html($_), @$events;
+}
+
 sub _event_to_html {
   my ($self, $evt) = @_;
   # big expression

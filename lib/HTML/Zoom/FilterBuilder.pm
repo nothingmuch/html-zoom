@@ -138,12 +138,12 @@ sub collect {
       while (my ($evt) = $stream->next) {
         $depth++ if ($evt->{type} eq 'OPEN');
         $depth-- if ($evt->{type} eq 'CLOSE');
+        push(@$into, $evt) if $into;
         unless ($depth) {
           undef $stream;
           return $evt if $passthrough;
           return;
         }
-        push(@$into, $evt) if $into;
         return $evt if $passthrough;
       }
       die "Never saw closing </${name}> before end of source";

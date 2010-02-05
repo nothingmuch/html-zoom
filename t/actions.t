@@ -89,4 +89,24 @@ is(
   'replace ok'
 );
 
+my @ev;
+
+is(
+  run_for { $_->collect({ into => \@ev }) },
+  '<body>
+  
+</body>
+',
+  'collect removes without passthrough'
+);
+
+is(
+  HTML::Zoom::Producer::BuiltIn->html_from_events(\@ev),
+  '<div class="main">
+    <span class="hilight name">Bob</span>
+    <span class="career">Builder</span>
+    <hr />
+  </div>',
+  'collect collected right events'
+);
 done_testing;
