@@ -90,7 +90,7 @@ sub add_after {
   sub {
     my ($evt, $stream) = @_;
     my $emit = $self->_stream_from_array(@$events);
-    my $coll = $self->collect(undef, { passthrough => 1 })->(@_);
+    my $coll = $self->collect({ passthrough => 1 })->(@_);
     return ref($coll) eq 'HASH' # single event, no collect
       ? [ $coll, $emit ]
       : [ $coll->[0], $self->_stream_concat($coll->[1], $emit) ];
@@ -122,8 +122,8 @@ sub replace {
 }
 
 sub collect {
-  my ($self, $into, $attrs) = @_;
-  my ($passthrough) = @{$attrs}{qw(passthrough)};
+  my ($self, $attrs) = @_;
+  my ($into, $passthrough) = @{$attrs}{qw(into passthrough)};
   sub {
     my ($evt, $stream) = @_;
     push(@$into, $evt) if $into;
