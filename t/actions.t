@@ -109,4 +109,51 @@ is(
   </div>',
   'collect collected right events'
 );
+
+($expect = $tmpl) =~ s/class="main"/class="foo"/;
+
+is(
+  run_for { $_->set_attribute({ name => 'class', value => 'foo' }) },
+  $expect,
+  'set attribute on existing attribute'
+);
+
+($expect = $tmpl) =~ s/class="main"/class="main" foo="bar"/;
+
+is(
+  run_for { $_->set_attribute({ name => 'foo', value => 'bar' }) },
+  $expect,
+  'set attribute on non existing attribute'
+);
+
+($expect = $tmpl) =~ s/class="main"/class="main foo"/;
+
+is(
+  run_for { $_->add_attribute({ name => 'class', value => 'foo' }) },
+  $expect,
+  'add attribute on existing attribute'
+);
+
+($expect = $tmpl) =~ s/class="main"/class="main" foo="bar"/;
+
+is(
+  run_for { $_->add_attribute({ name => 'foo', value => 'bar' }) },
+  $expect,
+  'add attribute on non existing attribute'
+);
+
+($expect = $tmpl) =~ s/ class="main"//;
+
+is(
+  run_for { $_->remove_attribute({ name => 'class' }) },
+  $expect,
+  'remove attribute on existing attribute'
+);
+
+is(
+  run_for { $_->remove_attribute({ name => 'foo' }) },
+  $tmpl,
+  'remove attribute on non existing attribute'
+);
+
 done_testing;
