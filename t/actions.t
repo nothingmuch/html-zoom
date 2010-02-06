@@ -188,4 +188,12 @@ is(
   'replace w/inside'
 );
 
+($expect = $tmpl) =~ s/(?=<\/div>)/O HAI/;
+
+is(
+  run_for { $_->append_inside($ohai) },
+  $expect,
+  'append inside ok'
+);
+
 done_testing;
