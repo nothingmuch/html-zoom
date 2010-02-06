@@ -128,18 +128,25 @@ sub append_inside {
 }
 
 sub replace {
-  my ($self, $events) = @_;
+  my ($self, $events, $options) = @_;
   sub {
     my ($evt, $stream) = @_;
     my $emit = $self->_stream_from_array(@$events);
-    my $coll = $self->collect->(@_);
-    return $coll ? $self->_stream_concat($emit, $coll) : $emit;
+    my $coll = $self->collect($options)->(@_);
+    return
+      ($coll
+        ? (ref $coll eq 'ARRAY'
+            ? [ $coll->[0], $self->_stream_concat($emit, $coll->[1]) ]
+            : $self->_stream_concat($emit, $coll)
+          )
+        : $emit
+      );
   };
 }
 
 sub collect {
-  my ($self, $attrs) = @_;
-  my ($into, $passthrough, $inside) = @{$attrs}{qw(into passthrough inside)};
+  my ($self, $options) = @_;
+  my ($into, $passthrough, $inside) = @{$options}{qw(into passthrough inside)};
   sub {
     my ($evt, $stream) = @_;
     push(@$into, $evt) if $into && !$inside;

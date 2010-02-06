@@ -179,4 +179,13 @@ is(
   'collect w/inside collects correctly'
 );
 
+is(
+  run_for { $_->replace($ohai, { inside => 1 }) },
+  '<body>
+  <div class="main">O HAI</div>
+</body>
+',
+  'replace w/inside'
+);
+
 done_testing;
