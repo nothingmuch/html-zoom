@@ -16,8 +16,27 @@ sub new {
   bless({ _code => $args->{code} }, $class);
 }
 
+sub peek {
+  my ($self) = @_;
+  if (exists $self->{_peeked}) {
+    return ($self->{_peeked});
+  }
+  if (my ($peeked) = $self->next) {
+    return ($self->{_peeked} = $peeked);
+  }
+  return;
+}
+
 sub next {
-  $_[0]->{_code}->()
+  my ($self) = @_;
+
+  # peeked entry so return that
+
+  if (exists $self->{_peeked}) {
+    return (delete $self->{_peeked});
+  }
+
+  $self->{_code}->();
 }
 
 1;

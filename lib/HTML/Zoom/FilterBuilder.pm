@@ -37,7 +37,7 @@ sub set_attribute {
   my ($self, $args) = @_;
   my ($name, $value) = @{$args}{qw(name value)};
   sub {
-    my $a = (my $evt = shift)->{attrs};
+    my $a = (my $evt = $_[0])->{attrs};
     my $e = exists $a->{$name};
     +{ %$evt, raw => undef, raw_attrs => undef,
        attrs => { %$a, $name => $value },
@@ -52,7 +52,7 @@ sub add_attribute {
   my ($self, $args) = @_;
   my ($name, $value) = @{$args}{qw(name value)};
   sub {
-    my $a = (my $evt = shift)->{attrs};
+    my $a = (my $evt = $_[0])->{attrs};
     my $e = exists $a->{$name};
     +{ %$evt, raw => undef, raw_attrs => undef,
        attrs => {
@@ -70,7 +70,7 @@ sub remove_attribute {
   my ($self, $args) = @_;
   my $name = $args->{name};
   sub {
-    my $a = (my $evt = shift)->{attrs};
+    my $a = (my $evt = $_[0])->{attrs};
     return $evt unless exists $a->{$name};
     $a = { %$a }; delete $a->{$name};
     +{ %$evt, raw => undef, raw_attrs => undef,
@@ -82,25 +82,25 @@ sub remove_attribute {
 
 sub add_before {
   my ($self, $events) = @_;
-  sub { return $self->_stream_from_array(@$events, shift) };
+  sub { return $self->_stream_from_array(@$events, $_[0]) };
 }
 
 sub add_after {
   my ($self, $events) = @_;
   sub {
-    my ($evt, $stream) = @_;
+    my ($evt) = @_;
     my $emit = $self->_stream_from_array(@$events);
     my $coll = $self->collect({ passthrough => 1 })->(@_);
     return ref($coll) eq 'HASH' # single event, no collect
       ? [ $coll, $emit ]
       : [ $coll->[0], $self->_stream_concat($coll->[1], $emit) ];
   };
-}  
+}
 
 sub prepend_inside {
   my ($self, $events) = @_;
   sub {
-    my $evt = shift;
+    my ($evt) = @_;
     if ($evt->{is_in_place_close}) {
       $evt = { %$evt }; delete @{$evt}{qw(raw is_in_place_close)};
       return [ $evt, $self->_stream_from_array(
@@ -108,6 +108,22 @@ sub prepend_inside {
       ) ];
     }
     return $self->_stream_from_array($evt, @$events);
+  };
+}
+
+sub append_inside {
+  my ($self, $events) = @_;
+  sub {
+    my ($evt) = @_;
+    if ($evt->{is_in_place_close}) {
+      $evt = { %$evt }; delete @{$evt}{qw(raw is_in_place_close)};
+      return [ $evt, $self->_stream_from_array(
+        @$events, { type => 'CLOSE', name => $evt->{name} }
+      ) ];
+    }
+    my $coll = $self->collect({ passthrough => 1, inside => 1 })->(@_);
+    my $emit = $self->_stream_from_array(@$events);
+    return [ $coll->[0], $self->_stream_concat($coll->[1], $emit) ];
   };
 }
 
@@ -123,32 +139,36 @@ sub replace {
 
 sub collect {
   my ($self, $attrs) = @_;
-  my ($into, $passthrough) = @{$attrs}{qw(into passthrough)};
+  my ($into, $passthrough, $inside) = @{$attrs}{qw(into passthrough inside)};
   sub {
     my ($evt, $stream) = @_;
-    push(@$into, $evt) if $into;
+    push(@$into, $evt) if $into && !$inside;
     if ($evt->{is_in_place_close}) {
-      return $evt if $passthrough;
+      return $evt if $passthrough || $inside;
       return;
     }
     my $name = $evt->{name};
     my $depth = 1;
+    my $_next = $inside ? 'peek' : 'next';
     my $collector = $self->_stream_from_code(sub {
       return unless $stream;
-      while (my ($evt) = $stream->next) {
+      while (my ($evt) = $stream->$_next) {
         $depth++ if ($evt->{type} eq 'OPEN');
         $depth-- if ($evt->{type} eq 'CLOSE');
-        push(@$into, $evt) if $into;
         unless ($depth) {
           undef $stream;
+          return if $inside;
+          push(@$into, $evt) if $into;
           return $evt if $passthrough;
           return;
         }
+        push(@$into, $evt) if $into;
+        $stream->next if $inside;
         return $evt if $passthrough;
       }
       die "Never saw closing </${name}> before end of source";
     });
-    return $passthrough ? [ $evt, $collector ] : $collector;
+    return ($passthrough||$inside) ? [ $evt, $collector ] : $collector;
   };
 }
 

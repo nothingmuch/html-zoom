@@ -46,69 +46,7 @@ sub run_for (&;$) {
   )
 }
 
-(my $expect = $tmpl) =~ s/(?=<div)/O HAI/;
-
-my $ohai = [ { type => 'TEXT', raw => 'O HAI' } ];
-
-is(
-  run_for { $_->add_before($ohai) },
-  $expect,
-  'add_before ok'
-);
-
-($expect = $tmpl) =~ s/(?<=<\/div>)/O HAI/;
-
-is(
-  run_for { $_->add_after($ohai) },
-  $expect,
-  'add_after ok'
-);
-
-($expect = $tmpl) =~ s/(?<=class="main">)/O HAI/;
-
-is(
-  run_for { $_->prepend_inside($ohai) },
-  $expect,
-  'prepend_inside ok'
-);
-
-($expect = $tmpl) =~ s/<hr \/>/<hr>O HAI<\/hr>/;
-
-is(
-  (run_for { $_->prepend_inside($ohai) } 'hr'),
-  $expect,
-  'prepend_inside ok with in place close'
-);
-
-is(
-  run_for { $_->replace($ohai) },
-'<body>
-  O HAI
-</body>
-',
-  'replace ok'
-);
-
-my @ev;
-
-is(
-  run_for { $_->collect({ into => \@ev }) },
-  '<body>
-  
-</body>
-',
-  'collect removes without passthrough'
-);
-
-is(
-  HTML::Zoom::Producer::BuiltIn->html_from_events(\@ev),
-  '<div class="main">
-    <span class="hilight name">Bob</span>
-    <span class="career">Builder</span>
-    <hr />
-  </div>',
-  'collect collected right events'
-);
+my ($expect, @ev);
 
 ($expect = $tmpl) =~ s/class="main"/class="foo"/;
 
@@ -154,6 +92,91 @@ is(
   run_for { $_->remove_attribute({ name => 'foo' }) },
   $tmpl,
   'remove attribute on non existing attribute'
+);
+
+($expect = $tmpl) =~ s/(?=<div)/O HAI/;
+
+my $ohai = [ { type => 'TEXT', raw => 'O HAI' } ];
+
+is(
+  run_for { $_->add_before($ohai) },
+  $expect,
+  'add_before ok'
+);
+
+($expect = $tmpl) =~ s/(?<=<\/div>)/O HAI/;
+
+is(
+  run_for { $_->add_after($ohai) },
+  $expect,
+  'add_after ok'
+);
+
+($expect = $tmpl) =~ s/(?<=class="main">)/O HAI/;
+
+is(
+  run_for { $_->prepend_inside($ohai) },
+  $expect,
+  'prepend_inside ok'
+);
+
+($expect = $tmpl) =~ s/<hr \/>/<hr>O HAI<\/hr>/;
+
+is(
+  (run_for { $_->prepend_inside($ohai) } 'hr'),
+  $expect,
+  'prepend_inside ok with in place close'
+);
+
+is(
+  run_for { $_->replace($ohai) },
+'<body>
+  O HAI
+</body>
+',
+  'replace ok'
+);
+
+@ev = ();
+
+is(
+  run_for { $_->collect({ into => \@ev }) },
+  '<body>
+  
+</body>
+',
+  'collect removes without passthrough'
+);
+
+is(
+  HTML::Zoom::Producer::BuiltIn->html_from_events(\@ev),
+  '<div class="main">
+    <span class="hilight name">Bob</span>
+    <span class="career">Builder</span>
+    <hr />
+  </div>',
+  'collect collected right events'
+);
+
+@ev = ();
+
+is(
+  run_for { $_->collect({ into => \@ev, inside => 1 }) },
+  '<body>
+  <div class="main"></div>
+</body>
+',
+  'collect w/inside removes correctly'
+);
+
+is(
+  HTML::Zoom::Producer::BuiltIn->html_from_events(\@ev),
+  '
+    <span class="hilight name">Bob</span>
+    <span class="career">Builder</span>
+    <hr />
+  ',
+  'collect w/inside collects correctly'
 );
 
 done_testing;
