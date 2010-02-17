@@ -80,6 +80,41 @@ sub remove_attribute {
   };
 }
 
+sub collect {
+  my ($self, $options) = @_;
+  my ($into, $passthrough, $inside) = @{$options}{qw(into passthrough inside)};
+  sub {
+    my ($evt, $stream) = @_;
+    push(@$into, $evt) if $into && !$inside;
+    if ($evt->{is_in_place_close}) {
+      return $evt if $passthrough || $inside;
+      return;
+    }
+    my $name = $evt->{name};
+    my $depth = 1;
+    my $_next = $inside ? 'peek' : 'next';
+    my $collector = $self->_stream_from_code(sub {
+      return unless $stream;
+      while (my ($evt) = $stream->$_next) {
+        $depth++ if ($evt->{type} eq 'OPEN');
+        $depth-- if ($evt->{type} eq 'CLOSE');
+        unless ($depth) {
+          undef $stream;
+          return if $inside;
+          push(@$into, $evt) if $into;
+          return $evt if $passthrough;
+          return;
+        }
+        push(@$into, $evt) if $into;
+        $stream->next if $inside;
+        return $evt if $passthrough;
+      }
+      die "Never saw closing </${name}> before end of source";
+    });
+    return ($passthrough||$inside) ? [ $evt, $collector ] : $collector;
+  };
+}
+
 sub add_before {
   my ($self, $events) = @_;
   sub { return $self->_stream_from_array(@$events, $_[0]) };
@@ -141,41 +176,6 @@ sub replace {
           )
         : $emit
       );
-  };
-}
-
-sub collect {
-  my ($self, $options) = @_;
-  my ($into, $passthrough, $inside) = @{$options}{qw(into passthrough inside)};
-  sub {
-    my ($evt, $stream) = @_;
-    push(@$into, $evt) if $into && !$inside;
-    if ($evt->{is_in_place_close}) {
-      return $evt if $passthrough || $inside;
-      return;
-    }
-    my $name = $evt->{name};
-    my $depth = 1;
-    my $_next = $inside ? 'peek' : 'next';
-    my $collector = $self->_stream_from_code(sub {
-      return unless $stream;
-      while (my ($evt) = $stream->$_next) {
-        $depth++ if ($evt->{type} eq 'OPEN');
-        $depth-- if ($evt->{type} eq 'CLOSE');
-        unless ($depth) {
-          undef $stream;
-          return if $inside;
-          push(@$into, $evt) if $into;
-          return $evt if $passthrough;
-          return;
-        }
-        push(@$into, $evt) if $into;
-        $stream->next if $inside;
-        return $evt if $passthrough;
-      }
-      die "Never saw closing </${name}> before end of source";
-    });
-    return ($passthrough||$inside) ? [ $evt, $collector ] : $collector;
   };
 }
 
