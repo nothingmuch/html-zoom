@@ -168,11 +168,17 @@ sub replace {
     my ($evt, $stream) = @_;
     my $emit = $self->_stream_from_array(@$events);
     my $coll = $self->collect($options)->(@_);
+    # For a straightforward replace operation we can, in fact, do the emit
+    # -before- the collect, and my first cut did so. However in order to
+    # use the captured content in generating the new content, we need
+    # the collect stage to happen first - and it seems highly unlikely
+    # that in normal operation the collect phase will take long enough
+    # for the difference to be noticeable
     return
       ($coll
         ? (ref $coll eq 'ARRAY'
-            ? [ $coll->[0], $self->_stream_concat($emit, $coll->[1]) ]
-            : $self->_stream_concat($emit, $coll)
+            ? [ $coll->[0], $self->_stream_concat($coll->[1], $emit) ]
+            : $self->_stream_concat($coll, $emit)
           )
         : $emit
       );
