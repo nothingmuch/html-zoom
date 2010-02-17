@@ -2,6 +2,7 @@ package HTML::Zoom::CodeStream;
 
 use strict;
 use warnings FATAL => 'all';
+use base qw(HTML::Zoom::StreamBase);
 
 sub from_array {
   my ($class, @array) = @_;

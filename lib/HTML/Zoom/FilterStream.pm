@@ -2,6 +2,7 @@ package HTML::Zoom::FilterStream;
 
 use strict;
 use warnings FATAL => 'all';
+use base qw(HTML::Zoom::StreamBase);
 
 sub new {
   my ($class, $args) = @_;
