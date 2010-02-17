@@ -128,10 +128,11 @@ sub add_before {
 
 sub add_after {
   my ($self, $events) = @_;
+  my $coll_proto = $self->collect({ passthrough => 1 });
   sub {
     my ($evt) = @_;
     my $emit = $self->_stream_from_array(@$events);
-    my $coll = $self->collect({ passthrough => 1 })->(@_);
+    my $coll = &$coll_proto;
     return ref($coll) eq 'HASH' # single event, no collect
       ? [ $coll, $emit ]
       : [ $coll->[0], $self->_stream_concat($coll->[1], $emit) ];
@@ -154,6 +155,7 @@ sub prepend_inside {
 
 sub append_inside {
   my ($self, $events) = @_;
+  my $coll_proto = $self->collect({ passthrough => 1, inside => 1 });
   sub {
     my ($evt) = @_;
     if ($evt->{is_in_place_close}) {
@@ -162,7 +164,7 @@ sub append_inside {
         @$events, { type => 'CLOSE', name => $evt->{name} }
       ) ];
     }
-    my $coll = $self->collect({ passthrough => 1, inside => 1 })->(@_);
+    my $coll = &$coll_proto;
     my $emit = $self->_stream_from_array(@$events);
     return [ $coll->[0], $self->_stream_concat($coll->[1], $emit) ];
   };
@@ -170,10 +172,11 @@ sub append_inside {
 
 sub replace {
   my ($self, $events, $options) = @_;
+  my $coll_proto = $self->collect($options);
   sub {
     my ($evt, $stream) = @_;
     my $emit = $self->_stream_from_array(@$events);
-    my $coll = $self->collect($options)->(@_);
+    my $coll = &$coll_proto;
     # For a straightforward replace operation we can, in fact, do the emit
     # -before- the collect, and my first cut did so. However in order to
     # use the captured content in generating the new content, we need
