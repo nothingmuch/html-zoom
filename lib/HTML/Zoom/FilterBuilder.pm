@@ -85,7 +85,13 @@ sub collect {
   my ($into, $passthrough, $inside) = @{$options}{qw(into passthrough inside)};
   sub {
     my ($evt, $stream) = @_;
-    push(@$into, $evt) if $into && !$inside;
+    # We wipe the contents of @$into here so that other actions depending
+    # on this (such as a repeater) can be invoked multiple times easily.
+    # I -suspect- it's better for that state reset to be managed here; if it
+    # ever becomes painful the decision should be revisited
+    if ($into) {
+      @$into = $inside ? () : ($evt);
+    }
     if ($evt->{is_in_place_close}) {
       return $evt if $passthrough || $inside;
       return;
