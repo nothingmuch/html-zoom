@@ -18,9 +18,9 @@ my $tmpl = <<END;
 </body>
 END
 
-sub src_stream { HTML::Zoom::Parser::BuiltIn->html_to_stream($tmpl); }
+sub src_stream { HTML::Zoom::Parser::BuiltIn->new->html_to_stream($tmpl); }
 
-sub html_sink { HTML::Zoom::Producer::BuiltIn->html_from_stream($_[0]) }
+sub html_sink { HTML::Zoom::Producer::BuiltIn->new->html_from_stream($_[0]) }
 
 my $fb = HTML::Zoom::FilterBuilder->new;
 

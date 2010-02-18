@@ -11,6 +11,7 @@ sub new {
       _stream => $args->{stream},
       _match => $args->{match},
       _filter => $args->{filter},
+      _zconfig => $args->{zconfig},
     },
     $class
   );

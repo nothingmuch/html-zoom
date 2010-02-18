@@ -2,19 +2,19 @@ package HTML::Zoom::Parser::BuiltIn;
 
 use strict;
 use warnings FATAL => 'all';
-
-use HTML::Zoom::CodeStream;
+use base qw(HTML::Zoom::SubObject);
 
 sub html_to_events {
-  my ($class, $text) = @_;
+  my ($self, $text) = @_;
   my @events;
   _hacky_tag_parser($text => sub { push @events, $_[0] });
   return \@events;
 }
 
 sub html_to_stream {
-  my ($class, $text) = @_;
-  return HTML::Zoom::CodeStream->from_array(@{$class->html_to_events($text)});
+  my ($self, $text) = @_;
+  return $self->_zconfig->stream_utils
+              ->stream_from_array(@{$self->html_to_events($text)});
 }
 
 sub _hacky_tag_parser {

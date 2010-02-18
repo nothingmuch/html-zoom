@@ -1,0 +1,22 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings FATAL => 'all';
+
+my $from = do { local (@ARGV, $/) = ('lib/HTML/Zoom.pm'); <> };
+
+$from =~ s/.*^=head1 SYNOPSIS\n//sm;
+
+$from =~ s/^=head1.*//sm;
+
+my $code = join "\n", map { s/^  // ? ($_) : () } split "\n", $from;
+
+open my $syn_test, '>', 't/synopsis.t'
+  or die "Couldn't open t/synopsis.t - you screwed something up. Go fix it.\n";
+
+print $syn_test "use strict;
+use warnings FATAL => 'all';
+use Test::More qw(no_plan);
+
+$code;
+";

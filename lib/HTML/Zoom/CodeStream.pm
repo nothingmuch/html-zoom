@@ -14,7 +14,7 @@ sub from_array {
 
 sub new {
   my ($class, $args) = @_;
-  bless({ _code => $args->{code} }, $class);
+  bless({ _code => $args->{code}, _zconfig => $args->{zconfig} }, $class);
 }
 
 sub next {

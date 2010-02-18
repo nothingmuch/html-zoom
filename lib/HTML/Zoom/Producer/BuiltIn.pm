@@ -3,6 +3,10 @@ package HTML::Zoom::Producer::BuiltIn;
 use strict;
 use warnings FATAL => 'all';
 
+sub new { bless({}, $_[0]) }
+
+sub with_zconfig { shift }
+
 sub html_from_stream {
   my ($class, $stream) = @_;
   my $html;

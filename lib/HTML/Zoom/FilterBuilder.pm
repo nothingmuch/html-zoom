@@ -2,41 +2,23 @@ package HTML::Zoom::FilterBuilder;
 
 use strict;
 use warnings FATAL => 'all';
+use base qw(HTML::Zoom::SubObject);
 use HTML::Zoom::CodeStream;
 
-sub new { bless({}, shift) }
-
 sub _stream_from_code {
-  HTML::Zoom::CodeStream->new({ code => $_[1] })
+  shift->_zconfig->stream_utils->stream_from_code(@_)
 }
 
 sub _stream_from_array {
-  shift; # lose $self
-  HTML::Zoom::CodeStream->from_array(@_)
+  shift->_zconfig->stream_utils->stream_from_array(@_)
 }
 
 sub _stream_from_proto {
-  my ($self, $proto) = @_;
-  my $ref = ref $proto;
-  if (not $ref) {
-    require HTML::Zoom::Parser::BuiltIn;
-    return $self->_stream_from_array({
-      type => 'TEXT',
-      raw => HTML::Zoom::Parser::BuiltIn->html_escape($proto)
-    });
-  } elsif ($ref eq 'ARRAY') {
-    return $self->_stream_from_array(@$proto);
-  } elsif ($ref eq 'CODE') {
-    return $proto->();
-  } elsif ($ref eq 'SCALAR') {
-    require HTML::Zoom::Parser::BuiltIn;
-    return HTML::Zoom::Parser::BuiltIn->html_to_stream($$proto);
-  }
-  die "Don't know how to turn $proto (ref $ref) into a stream";
+  shift->_zconfig->stream_utils->stream_from_proto(@_)
 }
 
 sub _stream_concat {
-  shift->_stream_from_array(@_)->flatten;
+  shift->_zconfig->stream_utils->stream_concat(@_)
 }
 
 sub set_attribute {
@@ -106,7 +88,7 @@ sub collect {
     my $name = $evt->{name};
     my $depth = 1;
     my $_next = $content ? 'peek' : 'next';
-    $stream = $filter->($stream) if $filter;
+    $stream = do { local $_ = $stream; $filter->($stream) } if $filter;
     my $collector = $self->_stream_from_code(sub {
       return unless $stream;
       while (my ($evt) = $stream->$_next) {
@@ -218,16 +200,8 @@ sub repeat {
   my @between;
   my $repeat_between = delete $options->{repeat_between};
   if ($repeat_between) {
-    require HTML::Zoom::SelectorParser;
-    require HTML::Zoom::FilterStream;
-    my $sp = HTML::Zoom::SelectorParser->new;
-    my $filter = $self->collect({ into => \@between });
     $options->{filter} = sub {
-      HTML::Zoom::FilterStream->new({
-        stream => $_[0],
-        match => $sp->parse_selector($repeat_between),
-        filter => $filter
-      })
+      $_->select($repeat_between)->collect({ into => \@between })
     };
   }
   my $repeater = sub {

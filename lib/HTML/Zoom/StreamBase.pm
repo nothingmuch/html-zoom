@@ -2,6 +2,9 @@ package HTML::Zoom::StreamBase;
 
 use strict;
 use warnings FATAL => 'all';
+use HTML::Zoom::MatchWithoutFilter;
+
+sub _zconfig { shift->{_zconfig} }
 
 sub peek {
   my ($self) = @_;
@@ -51,6 +54,26 @@ sub map {
       undef $source_stream; return;
     }
   });
+}
+
+sub with_filter {
+  my ($self, $selector, $filter) = @_;
+  my $match = $self->_parse_selector($selector);
+  $self->_zconfig->stream_utils->wrap_with_filter($self, $match, $filter);
+}
+
+sub select {
+  my ($self, $selector) = @_;
+  my $match = $self->_parse_selector($selector);
+  return HTML::Zoom::MatchWithoutFilter->construct(
+    $self, $match, $self->_zconfig->filter_builder,
+  );
+}
+
+sub _parse_selector {
+  my ($self, $selector) = @_;
+  return $selector if ref($selector); # already a match sub
+  $self->_zconfig->selector_parser->parse_selector($selector);
 }
 
 1;
