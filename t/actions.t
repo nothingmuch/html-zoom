@@ -262,4 +262,43 @@ is(
   'repeat_content ok'
 );
 
+is(
+  run_for {
+    my @between;
+    $_->repeat_content(
+      [
+        sub {
+          HTML::Zoom::CodeStream->from_array(
+            (filter
+              filter($_ => '.name' => $r_content->('mst'))
+              => '.career' => $r_content->('Chainsaw Wielder')),
+            HTML::Zoom::CodeStream->from_array(@between)
+          )->flatten
+        },
+        sub {
+          filter
+            filter($_ => '.name' => $r_content->('mdk'))
+            => '.career' => $r_content->('Adminion')
+        },
+      ],
+      { filter => sub {
+          filter $_[0] => 'hr' => sub { $_->collect({ into => \@between }) }
+        }
+      }
+    )
+  },
+  q{<body>
+  <div class="main">
+    <span class="hilight name">mst</span>
+    <span class="career">Chainsaw Wielder</span>
+    <hr />
+    <span class="hilight name">mdk</span>
+    <span class="career">Adminion</span>
+    
+  </div>
+</body>
+},
+  'repeat_content with filter ok'
+);
+
 done_testing;

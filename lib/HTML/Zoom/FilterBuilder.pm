@@ -84,7 +84,8 @@ sub remove_attribute {
 
 sub collect {
   my ($self, $options) = @_;
-  my ($into, $passthrough, $content) = @{$options}{qw(into passthrough content)};
+  my ($into, $passthrough, $content, $filter) =
+    @{$options}{qw(into passthrough content filter)};
   sub {
     my ($evt, $stream) = @_;
     # We wipe the contents of @$into here so that other actions depending
@@ -101,6 +102,7 @@ sub collect {
     my $name = $evt->{name};
     my $depth = 1;
     my $_next = $content ? 'peek' : 'next';
+    $stream = $filter->($stream) if $filter;
     my $collector = $self->_stream_from_code(sub {
       return unless $stream;
       while (my ($evt) = $stream->$_next) {
