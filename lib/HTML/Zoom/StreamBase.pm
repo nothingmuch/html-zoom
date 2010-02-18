@@ -23,12 +23,10 @@ sub flatten {
       return unless $source_stream;
       my $next;
       until (($next) = ($cur_stream ? $cur_stream->next : ())) {
-#::Dwarn $source_stream;
         unless (($cur_stream) = $source_stream->next) {
           undef $source_stream; return;
         }
       }
-#::Dwarn $next;
       return $next;
     }
   });

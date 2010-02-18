@@ -1,7 +1,5 @@
 package HTML::Zoom::FilterBuilder;
 
-use Devel::Dwarn;
-
 use strict;
 use warnings FATAL => 'all';
 use HTML::Zoom::CodeStream;
@@ -30,7 +28,7 @@ sub _stream_from_proto {
     require HTML::Zoom::Parser::BuiltIn;
     return HTML::Zoom::Parser::BuiltIn->html_to_stream($$proto);
   }
-  die "What the hell is $proto and how should I turn a $ref into a stream?";
+  die "Don't know how to turn $proto (ref $ref) into a stream";
 }
 
 sub _stream_concat {

@@ -2,8 +2,6 @@ use strict;
 use warnings FATAL => 'all';
 use Test::More;
 
-use Devel::Dwarn;
-
 use HTML::Zoom::Parser::BuiltIn;
 use HTML::Zoom::Producer::BuiltIn;
 use HTML::Zoom::SelectorParser;
