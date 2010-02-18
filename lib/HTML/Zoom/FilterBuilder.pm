@@ -84,7 +84,7 @@ sub remove_attribute {
 
 sub collect {
   my ($self, $options) = @_;
-  my ($into, $passthrough, $inside) = @{$options}{qw(into passthrough inside)};
+  my ($into, $passthrough, $content) = @{$options}{qw(into passthrough content)};
   sub {
     my ($evt, $stream) = @_;
     # We wipe the contents of @$into here so that other actions depending
@@ -92,15 +92,15 @@ sub collect {
     # I -suspect- it's better for that state reset to be managed here; if it
     # ever becomes painful the decision should be revisited
     if ($into) {
-      @$into = $inside ? () : ($evt);
+      @$into = $content ? () : ($evt);
     }
     if ($evt->{is_in_place_close}) {
-      return $evt if $passthrough || $inside;
+      return $evt if $passthrough || $content;
       return;
     }
     my $name = $evt->{name};
     my $depth = 1;
-    my $_next = $inside ? 'peek' : 'next';
+    my $_next = $content ? 'peek' : 'next';
     my $collector = $self->_stream_from_code(sub {
       return unless $stream;
       while (my ($evt) = $stream->$_next) {
@@ -108,19 +108,24 @@ sub collect {
         $depth-- if ($evt->{type} eq 'CLOSE');
         unless ($depth) {
           undef $stream;
-          return if $inside;
+          return if $content;
           push(@$into, $evt) if $into;
           return $evt if $passthrough;
           return;
         }
         push(@$into, $evt) if $into;
-        $stream->next if $inside;
+        $stream->next if $content;
         return $evt if $passthrough;
       }
       die "Never saw closing </${name}> before end of source";
     });
-    return ($passthrough||$inside) ? [ $evt, $collector ] : $collector;
+    return ($passthrough||$content) ? [ $evt, $collector ] : $collector;
   };
+}
+
+sub collect_content {
+  my ($self, $options) = @_;
+  $self->collect({ %{$options||{}}, content => 1 })
 }
 
 sub add_before {
@@ -141,7 +146,7 @@ sub add_after {
   };
 }
 
-sub prepend_inside {
+sub prepend_content {
   my ($self, $events) = @_;
   sub {
     my ($evt) = @_;
@@ -155,9 +160,9 @@ sub prepend_inside {
   };
 }
 
-sub append_inside {
+sub append_content {
   my ($self, $events) = @_;
-  my $coll_proto = $self->collect({ passthrough => 1, inside => 1 });
+  my $coll_proto = $self->collect({ passthrough => 1, content => 1 });
   sub {
     my ($evt) = @_;
     if ($evt->{is_in_place_close}) {
@@ -196,6 +201,11 @@ sub replace {
   };
 }
 
+sub replace_content {
+  my ($self, $replace_with, $options) = @_;
+  $self->replace($replace_with, { %{$options||{}}, content => 1 })
+}
+
 sub repeat {
   my ($self, $repeat_for, $options) = @_;
   $options->{into} = \my @into;
@@ -209,6 +219,11 @@ sub repeat {
          ->flatten
   };
   $self->replace($repeater, $options);
+}
+
+sub repeat_content {
+  my ($self, $repeat_for, $options) = @_;
+  $self->repeat($repeat_for, { %{$options||{}}, content => 1 })
 }
 
 1;

@@ -115,17 +115,17 @@ is(
 ($expect = $tmpl) =~ s/(?<=class="main">)/O HAI/;
 
 is(
-  run_for { $_->prepend_inside($ohai) },
+  run_for { $_->prepend_content($ohai) },
   $expect,
-  'prepend_inside ok'
+  'prepend_content ok'
 );
 
 ($expect = $tmpl) =~ s/<hr \/>/<hr>O HAI<\/hr>/;
 
 is(
-  (run_for { $_->prepend_inside($ohai) } 'hr'),
+  (run_for { $_->prepend_content($ohai) } 'hr'),
   $expect,
-  'prepend_inside ok with in place close'
+  'prepend_content ok with in place close'
 );
 
 is(
@@ -161,12 +161,12 @@ is(
 @ev = ();
 
 is(
-  run_for { $_->collect({ into => \@ev, inside => 1 }) },
+  run_for { $_->collect({ into => \@ev, content => 1 }) },
   '<body>
   <div class="main"></div>
 </body>
 ',
-  'collect w/inside removes correctly'
+  'collect w/content removes correctly'
 );
 
 is(
@@ -176,31 +176,27 @@ is(
     <span class="career">Builder</span>
     <hr />
   ',
-  'collect w/inside collects correctly'
+  'collect w/content collects correctly'
 );
 
 is(
-  run_for { $_->replace($ohai, { inside => 1 }) },
+  run_for { $_->replace($ohai, { content => 1 }) },
   '<body>
   <div class="main">O HAI</div>
 </body>
 ',
-  'replace w/inside'
+  'replace w/content'
 );
 
 ($expect = $tmpl) =~ s/(?=<\/div>)/O HAI/;
 
 is(
-  run_for { $_->append_inside($ohai) },
+  run_for { $_->append_content($ohai) },
   $expect,
-  'append inside ok'
+  'append content ok'
 );
 
-if (1) {
-
-warn "\n\n----\n\n";
-
-my $r_inside = sub { my $r = shift; sub { $_->replace($r, { inside => 1 }) } };
+my $r_content = sub { my $r = shift; sub { $_->replace($r, { content => 1 }) } };
 
 is(
   run_for {
@@ -208,13 +204,13 @@ is(
       [
         sub {
           filter
-            filter($_ => '.name' => $r_inside->('mst'))
-            => '.career' => $r_inside->('Chainsaw Wielder')
+            filter($_ => '.name' => $r_content->('mst'))
+            => '.career' => $r_content->('Chainsaw Wielder')
         },
         sub {
           filter
-            filter($_ => '.name' => $r_inside->('mdk'))
-            => '.career' => $r_inside->('Adminion')
+            filter($_ => '.name' => $r_content->('mdk'))
+            => '.career' => $r_content->('Adminion')
         },
       ]
     )
@@ -234,6 +230,36 @@ is(
   'repeat ok'
 );
 
-}
+is(
+  run_for {
+    $_->repeat_content(
+      [
+        sub {
+          filter
+            filter($_ => '.name' => $r_content->('mst'))
+            => '.career' => $r_content->('Chainsaw Wielder')
+        },
+        sub {
+          filter
+            filter($_ => '.name' => $r_content->('mdk'))
+            => '.career' => $r_content->('Adminion')
+        },
+      ]
+    )
+  },
+  q{<body>
+  <div class="main">
+    <span class="hilight name">mst</span>
+    <span class="career">Chainsaw Wielder</span>
+    <hr />
+  
+    <span class="hilight name">mdk</span>
+    <span class="career">Adminion</span>
+    <hr />
+  </div>
+</body>
+},
+  'repeat_content ok'
+);
 
 done_testing;
