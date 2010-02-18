@@ -2,6 +2,8 @@ use strict;
 use warnings FATAL => 'all';
 use Test::More;
 
+use Devel::Dwarn;
+
 use HTML::Zoom::Parser::BuiltIn;
 use HTML::Zoom::Producer::BuiltIn;
 use HTML::Zoom::SelectorParser;
@@ -195,5 +197,45 @@ is(
   $expect,
   'append inside ok'
 );
+
+if (1) {
+
+warn "\n\n----\n\n";
+
+my $r_inside = sub { my $r = shift; sub { $_->replace($r, { inside => 1 }) } };
+
+is(
+  run_for {
+    $_->repeat(
+      [
+        sub {
+          filter
+            filter($_ => '.name' => $r_inside->('mst'))
+            => '.career' => $r_inside->('Chainsaw Wielder')
+        },
+        sub {
+          filter
+            filter($_ => '.name' => $r_inside->('mdk'))
+            => '.career' => $r_inside->('Adminion')
+        },
+      ]
+    )
+  },
+  q{<body>
+  <div class="main">
+    <span class="hilight name">mst</span>
+    <span class="career">Chainsaw Wielder</span>
+    <hr />
+  </div><div class="main">
+    <span class="hilight name">mdk</span>
+    <span class="career">Adminion</span>
+    <hr />
+  </div>
+</body>
+},
+  'repeat ok'
+);
+
+}
 
 done_testing;

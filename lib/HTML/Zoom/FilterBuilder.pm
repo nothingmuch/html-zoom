@@ -17,20 +17,24 @@ sub _stream_from_array {
   HTML::Zoom::CodeStream->from_array(@_)
 }
 
+sub _stream_from_proto {
+  my ($self, $proto) = @_;
+  my $ref = ref $proto;
+  if (not $ref) {
+    return $self->_stream_from_array({ type => 'TEXT', raw => $proto });
+  } elsif ($ref eq 'ARRAY') {
+    return $self->_stream_from_array(@$proto);
+  } elsif ($ref eq 'CODE') {
+    return $proto->();
+  } elsif ($ref eq 'SCALAR') {
+    require HTML::Zoom::Parser::BuiltIn;
+    return HTML::Zoom::Parser::BuiltIn->html_to_stream($$proto);
+  }
+  die "What the hell is $proto and how should I turn a $ref into a stream?";
+}
+
 sub _stream_concat {
-  shift; # lose $self
-  my @streams = @_;
-  my $cur_stream = shift(@streams) or die "No streams passed";
-  HTML::Zoom::CodeStream->new({
-    code => sub {
-      return unless $cur_stream;
-      my $evt;
-      until (($evt) = $cur_stream->next) {
-        return unless $cur_stream = shift(@streams);
-      }
-      return $evt;
-    }
-  });
+  shift->_stream_from_array(@_)->flatten;
 }
 
 sub set_attribute {
@@ -171,11 +175,11 @@ sub append_inside {
 }
 
 sub replace {
-  my ($self, $events, $options) = @_;
+  my ($self, $replace_with, $options) = @_;
   my $coll_proto = $self->collect($options);
   sub {
     my ($evt, $stream) = @_;
-    my $emit = $self->_stream_from_array(@$events);
+    my $emit = $self->_stream_from_proto($replace_with);
     my $coll = &$coll_proto;
     # For a straightforward replace operation we can, in fact, do the emit
     # -before- the collect, and my first cut did so. However in order to
@@ -192,6 +196,21 @@ sub replace {
         : $emit
       );
   };
+}
+
+sub repeat {
+  my ($self, $repeat_for, $options) = @_;
+  $options->{into} = \my @into;
+  my $map_repeat = sub {
+    local $_ = $self->_stream_from_array(@into);
+    $_[0]->($_)
+  };
+  my $repeater = sub {
+    $self->_stream_from_proto($repeat_for)
+         ->map($map_repeat)
+         ->flatten
+  };
+  $self->replace($repeater, $options);
 }
 
 1;
