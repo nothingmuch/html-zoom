@@ -102,4 +102,8 @@ sub _simple_escape {
   $str;
 }
 
+sub html_escape { _simple_escape($_[1]) }
+
+sub html_unescape { _simple_unescape($_[1]) }
+
 1;

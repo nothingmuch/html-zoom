@@ -19,7 +19,11 @@ sub _stream_from_proto {
   my ($self, $proto) = @_;
   my $ref = ref $proto;
   if (not $ref) {
-    return $self->_stream_from_array({ type => 'TEXT', raw => $proto });
+    require HTML::Zoom::Parser::BuiltIn;
+    return $self->_stream_from_array({
+      type => 'TEXT',
+      raw => HTML::Zoom::Parser::BuiltIn->html_escape($proto)
+    });
   } elsif ($ref eq 'ARRAY') {
     return $self->_stream_from_array(@$proto);
   } elsif ($ref eq 'CODE') {
@@ -211,14 +215,45 @@ sub replace_content {
 sub repeat {
   my ($self, $repeat_for, $options) = @_;
   $options->{into} = \my @into;
-  my $map_repeat = sub {
-    local $_ = $self->_stream_from_array(@into);
-    $_[0]->($_)
-  };
+  my @between;
+  my $repeat_between = delete $options->{repeat_between};
+  if ($repeat_between) {
+    require HTML::Zoom::SelectorParser;
+    require HTML::Zoom::FilterStream;
+    my $sp = HTML::Zoom::SelectorParser->new;
+    my $filter = $self->collect({ into => \@between });
+    $options->{filter} = sub {
+      HTML::Zoom::FilterStream->new({
+        stream => $_[0],
+        match => $sp->parse_selector($repeat_between),
+        filter => $filter
+      })
+    };
+  }
   my $repeater = sub {
-    $self->_stream_from_proto($repeat_for)
-         ->map($map_repeat)
-         ->flatten
+    my $s = $self->_stream_from_proto($repeat_for);
+    # We have to test $repeat_between not @between here because
+    # at the point we're constructing our return stream @between
+    # hasn't been populated yet - but we can test @between in the
+    # map routine because it has been by then and that saves us doing
+    # the extra stream construction if we don't need it.
+    if ($repeat_between) {
+      $s->map(sub {
+            local $_ = $self->_stream_from_array(@into);
+            (@between && $s->peek)
+              ? $self->_stream_concat(
+                  $_[0]->($_), $self->_stream_from_array(@between)
+                )
+              : $_[0]->($_)
+          })
+        ->flatten;
+    } else {
+      $s->map(sub {
+            local $_ = $self->_stream_from_array(@into);
+            $_[0]->($_)
+          })
+        ->flatten;
+    }
   };
   $self->replace($repeater, $options);
 }

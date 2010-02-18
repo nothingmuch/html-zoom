@@ -301,4 +301,37 @@ is(
   'repeat_content with filter ok'
 );
 
+is(
+  run_for {
+    my @between;
+    $_->repeat_content(
+      [
+        sub {
+          filter
+            filter($_ => '.name' => $r_content->('mst'))
+            => '.career' => $r_content->('Chainsaw Wielder')
+        },
+        sub {
+          filter
+            filter($_ => '.name' => $r_content->('mdk'))
+            => '.career' => $r_content->('Adminion')
+        },
+      ],
+      { repeat_between => 'hr' }
+    )
+  },
+  q{<body>
+  <div class="main">
+    <span class="hilight name">mst</span>
+    <span class="career">Chainsaw Wielder</span>
+    <hr />
+    <span class="hilight name">mdk</span>
+    <span class="career">Adminion</span>
+    
+  </div>
+</body>
+},
+  'repeat_content using repeat_between ok'
+);
+
 done_testing;
