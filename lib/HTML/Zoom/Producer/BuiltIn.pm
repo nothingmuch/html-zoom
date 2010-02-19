@@ -2,24 +2,22 @@ package HTML::Zoom::Producer::BuiltIn;
 
 use strict;
 use warnings FATAL => 'all';
-
-sub new { bless({}, $_[0]) }
-
-sub with_zconfig { shift }
+use base qw(HTML::Zoom::SubObject);
 
 sub html_from_stream {
-  my ($class, $stream) = @_;
-  my $html;
-  while (my ($evt) = $stream->next) { $html .= $class->_event_to_html($evt) }
-  return $html;
+  my ($self, $stream) = @_;
+  return
+    join '',
+      map $self->event_to_html($_),
+        $self->_zconfig->stream_utils->stream_to_array($stream)
 }
 
 sub html_from_events {
-  my ($class, $events) = @_;
-  join '', map $class->_event_to_html($_), @$events;
+  my ($self, $events) = @_;
+  join '', map $self->event_to_html($_), @$events;
 }
 
-sub _event_to_html {
+sub event_to_html {
   my ($self, $evt) = @_;
   # big expression
   if (defined $evt->{raw}) {

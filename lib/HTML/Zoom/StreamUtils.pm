@@ -4,6 +4,8 @@ use strict;
 use warnings FATAL => 'all';
 use base qw(HTML::Zoom::SubObject);
 
+use Scalar::Util ();
+
 use HTML::Zoom::CodeStream;
 use HTML::Zoom::FilterStream;
 
@@ -42,6 +44,8 @@ sub stream_from_proto {
     return $proto->();
   } elsif ($ref eq 'SCALAR') {
     return $self->_zconfig->parser->html_to_stream($$proto);
+  } elsif (blessed($proto) && $proto->can('as_stream')) {
+    return $proto->as_stream;
   }
   die "Don't know how to turn $proto (ref $ref) into a stream";
 }
@@ -54,6 +58,13 @@ sub wrap_with_filter {
     filter => $filter,
     zconfig => $self->_zconfig,
   })
+}
+
+sub stream_to_array {
+  my $stream = $_[1];
+  my @array;
+  while (my ($evt) = $stream->next) { push @array, $evt }
+  return @array;
 }
 
 1;

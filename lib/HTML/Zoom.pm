@@ -5,6 +5,7 @@ use warnings FATAL => 'all';
 
 use HTML::Zoom::ZConfig;
 use HTML::Zoom::MatchWithoutFilter;
+use HTML::Zoom::ReadFH;
 
 sub new {
   my ($class, $args) = @_;
@@ -30,6 +31,12 @@ sub from_html {
   });
 }
 
+sub from_file {
+  my $self = shift->_self_or_new;
+  my $filename = shift;
+  $self->from_html(do { local (@ARGV, $/) = ($filename); <> });
+}
+
 sub to_stream {
   my $self = shift;
   die "No events to build from - forgot to call from_html?"
@@ -40,6 +47,22 @@ sub to_stream {
     $stream = $sutils->wrap_with_filter($stream, @{$filter_spec});
   }
   $stream
+}
+
+sub to_fh {
+  HTML::Zoom::ReadFH->from_zoom(shift);
+}
+
+sub run {
+  my $self = shift;
+  $self->zconfig->stream_utils->stream_to_array($self->to_stream);
+  return
+}
+
+sub apply {
+  my ($self, $code) = @_;
+  local $_ = $self;
+  $self->$code;
 }
 
 sub to_html {
