@@ -44,8 +44,9 @@ sub stream_from_proto {
     return $proto->();
   } elsif ($ref eq 'SCALAR') {
     return $self->_zconfig->parser->html_to_stream($$proto);
-  } elsif (blessed($proto) && $proto->can('as_stream')) {
-    return $proto->as_stream;
+  } elsif (Scalar::Util::blessed($proto) && $proto->can('as_stream')) {
+    my $stream = $proto->as_stream;
+    return $self->stream_from_code(sub { $stream->next });
   }
   die "Don't know how to turn $proto (ref $ref) into a stream";
 }
@@ -65,6 +66,23 @@ sub stream_to_array {
   my @array;
   while (my ($evt) = $stream->next) { push @array, $evt }
   return @array;
+}
+
+sub flatten_stream_of_streams {
+  my ($self, $source_stream) = @_;
+  my $cur_stream;
+  HTML::Zoom::CodeStream->new({
+    code => sub {
+      return unless $source_stream;
+      my $next;
+      until (($next) = ($cur_stream ? $cur_stream->next : ())) {
+        unless (($cur_stream) = $source_stream->next) {
+          undef $source_stream; return;
+        }
+      }
+      return $next;
+    }
+  });
 }
 
 1;

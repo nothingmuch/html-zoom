@@ -2,6 +2,7 @@ package HTML::Zoom::SelectorParser;
 
 use strict;
 use warnings FATAL => 'all';
+use base qw(HTML::Zoom::SubObject);
 use Carp qw(confess);
 
 my $sel_char = '-\w_';
@@ -41,7 +42,7 @@ sub _raw_parse_simple_selector {
         my @cl = split(/\./, $cls);
         sub {
           $_[0]->{attrs}{class}
-          && !grep $_[0]->{attrs}{class} !~ /\b$_\b/, @cl
+          && !grep $_[0]->{attrs}{class} !~ /(^|\s+)$_($|\s+)/, @cl
         }
       };
 

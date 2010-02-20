@@ -21,6 +21,10 @@ sub _stream_concat {
   shift->_zconfig->stream_utils->stream_concat(@_)
 }
 
+sub _flatten_stream_of_streams {
+  shift->_zconfig->stream_utils->flatten_stream_of_streams(@_)
+}
+
 sub set_attribute {
   my ($self, $args) = @_;
   my ($name, $value) = @{$args}{qw(name value)};
@@ -211,23 +215,23 @@ sub repeat {
     # hasn't been populated yet - but we can test @between in the
     # map routine because it has been by then and that saves us doing
     # the extra stream construction if we don't need it.
-    if ($repeat_between) {
-      $s->map(sub {
-            local $_ = $self->_stream_from_array(@into);
-            (@between && $s->peek)
-              ? $self->_stream_concat(
-                  $_[0]->($_), $self->_stream_from_array(@between)
-                )
-              : $_[0]->($_)
+    $self->_flatten_stream_of_streams(do {
+      if ($repeat_between) {
+        $s->map(sub {
+              local $_ = $self->_stream_from_array(@into);
+              (@between && $s->peek)
+                ? $self->_stream_concat(
+                    $_[0]->($_), $self->_stream_from_array(@between)
+                  )
+                : $_[0]->($_)
+            })
+      } else {
+        $s->map(sub {
+              local $_ = $self->_stream_from_array(@into);
+              $_[0]->($_)
           })
-        ->flatten;
-    } else {
-      $s->map(sub {
-            local $_ = $self->_stream_from_array(@into);
-            $_[0]->($_)
-          })
-        ->flatten;
-    }
+      }
+    })
   };
   $self->replace($repeater, $options);
 }
