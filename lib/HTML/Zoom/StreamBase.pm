@@ -76,4 +76,10 @@ sub _parse_selector {
   $self->_zconfig->selector_parser->parse_selector($selector);
 }
 
+sub apply {
+  my ($self, $code) = @_;
+  local $_ = $self;
+  $self->$code;
+}
+
 1;

@@ -26,8 +26,8 @@ sub _flatten_stream_of_streams {
 }
 
 sub set_attribute {
-  my ($self, $args) = @_;
-  my ($name, $value) = @{$args}{qw(name value)};
+  my $self = shift;
+  my ($name, $value) = $self->_parse_attribute_args(@_);
   sub {
     my $a = (my $evt = $_[0])->{attrs};
     my $e = exists $a->{$name};
@@ -40,9 +40,17 @@ sub set_attribute {
    };
 }
 
+sub _parse_attribute_args {
+  my $self = shift;
+  # allow ->add_attribute(name => 'value')
+  #    or ->add_attribute({ name => 'name', value => 'value' })
+  my ($name, $value) = @_ > 1 ? @_ : @{$_[0]}{qw(name value)};
+  return ($name, $self->_zconfig->parser->html_escape($value));
+}
+
 sub add_attribute {
-  my ($self, $args) = @_;
-  my ($name, $value) = @{$args}{qw(name value)};
+  my $self = shift;
+  my ($name, $value) = $self->_parse_attribute_args(@_);
   sub {
     my $a = (my $evt = $_[0])->{attrs};
     my $e = exists $a->{$name};
@@ -60,7 +68,7 @@ sub add_attribute {
 
 sub remove_attribute {
   my ($self, $args) = @_;
-  my $name = $args->{name};
+  my $name = (ref($args) eq 'HASH') ? $args->{name} : $args;
   sub {
     my $a = (my $evt = $_[0])->{attrs};
     return $evt unless exists $a->{$name};
@@ -74,8 +82,8 @@ sub remove_attribute {
 
 sub collect {
   my ($self, $options) = @_;
-  my ($into, $passthrough, $content, $filter) =
-    @{$options}{qw(into passthrough content filter)};
+  my ($into, $passthrough, $content, $filter, $flush_before) =
+    @{$options}{qw(into passthrough content filter flush_before)};
   sub {
     my ($evt, $stream) = @_;
     # We wipe the contents of @$into here so that other actions depending
@@ -111,7 +119,16 @@ sub collect {
       }
       die "Never saw closing </${name}> before end of source";
     });
-    return ($passthrough||$content) ? [ $evt, $collector ] : $collector;
+    if ($flush_before) {
+      if ($passthrough||$content) {
+        $evt = { %$evt, flush => 1 };
+      } else {
+        $evt = { type => 'EMPTY', flush => 1 };
+      }
+    }
+    return ($passthrough||$content||$flush_before)
+             ? [ $evt, $collector ]
+             : $collector;
   };
 }
 
