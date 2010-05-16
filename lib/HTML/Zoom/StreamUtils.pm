@@ -41,7 +41,12 @@ sub stream_from_proto {
   } elsif ($ref eq 'ARRAY') {
     return $self->stream_from_array(@$proto);
   } elsif ($ref eq 'CODE') {
-    return $proto->();
+    my $ret = $proto->();
+    if ( Scalar::Util::blessed($ret) and $ret->isa("HTML::Zoom::StreamBase")) {
+      return $ret;
+    } else {
+      return $self->stream_from_proto($ret);
+    }
   } elsif ($ref eq 'SCALAR') {
     return $self->_zconfig->parser->html_to_stream($$proto);
   } elsif (Scalar::Util::blessed($proto) && $proto->can('to_stream')) {
