@@ -344,7 +344,7 @@ HTML::Zoom does its best to defer doing anything until it's absolutely
 required. The only point at which it descends into state is when you force
 it to create a stream, directly by:
 
-  my $stream = $zoom->as_stream;
+  my $stream = $zoom->to_stream;
 
   while (my $evt = $stream->next) {
     # handle zoom event here
